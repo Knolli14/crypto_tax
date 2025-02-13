@@ -1,0 +1,7 @@
+__pycache__/
+.python-version
+*.csv
+*.parquet
+*.egg-info
+notebooks/
+*.zip
