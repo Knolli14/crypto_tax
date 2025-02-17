@@ -1,0 +1,38 @@
+base_fiat: EUR
+bitpanda:
+  csv_import:
+    header: 6
+    na_values:
+    - '-'
+    usecols:
+    - Timestamp
+    - Transaction Type
+    - Amount Asset
+    - Asset
+    - Amount Fiat
+    - Fiat
+  quantity_columns:
+  - Amount Asset
+  - Amount Fiat
+  rename_dict:
+    Amount Asset: amount_asset
+    Amount Fiat: amount_fiat
+    Asset: asset
+    Fiat: fiat
+    Timestamp: timestamp
+    Transaction Type: tx_type
+kucoin:
+  csv_import:
+    usecols:
+    - Filled Time(UTC+02:00)
+    - Side
+    - Symbol
+    - Filled Amount
+    - Filled Volume
+    - Filled Volume (USDT)
+  rename_dict:
+    Filled Amount: amount_asset_1
+    Filled Time(UTC+02:00): timestamp
+    Filled Volume: amount_asset_2
+    Filled Volume (USDT): amount_usdt
+    Side: tx_type

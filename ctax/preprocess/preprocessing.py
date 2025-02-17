@@ -2,20 +2,27 @@ import pandas as pd
 from pandas import DataFrame
 
 from pathlib import Path
-from typing import Literal, List, Dict, Any
+from typing import Literal
 
-from ctax.config import CONFIG
-from ctax.data import open_csv, open_parquet, save_as_parquet
+from ctax.data import load_history, save_history
 from ctax.paths import convert_extension
 from ctax.utils import print_success
+
+from ctax.preprocess.kucoin import preprocess_kucoin
+from ctax.preprocess.bitpanda import preprocess_bitpanda
 
 
 def preprocess_raw_df(
     df: DataFrame,
     cex: Literal["kucoin", "bitpanda"],
-    config: Dict[str, Any],
     ) -> DataFrame:
     """ """
+    print(f"Start Preprocessing {cex} data...")
+
+    preprocess_funcs = {
+        "kucoin": preprocess_kucoin,
+        "bitpanda": preprocess_bitpanda
+    }
 
     if df is None:
         return pd.DataFrame()
@@ -23,25 +30,45 @@ def preprocess_raw_df(
     if cex not in ["kucoin", "bitpanda"]:
         raise ValueError("Unknown exchange. Please use 'kucoin' or 'bitpanda'.")
 
-    print(f"Start Preprocessing {cex} data...")
-    return config["preprocessing_func"](df, config)
+    preprocess_func  = preprocess_funcs[cex]
+
+    return preprocess_func(df)
+
+
+def preprocess_directly(
+    file_name: str | Path,
+    cex: str,
+    ) -> None:
+
+    output_file = convert_extension(file_name, "parquet")
+    df = load_history(
+        file_name,
+        directory="csv",
+        raw=True,
+        cex=cex
+    )
+    print(f"-> Loaded {file_name}")
+
+    return df. \
+        pipe(preprocess_raw_df, cex). \
+        pipe(save_history, output_file, new_file=False) # change override behaviour
 
 
 # Merging
 
-def merge_history(histories: List[DataFrame]) -> DataFrame:
+def merge_history(histories: list[DataFrame]) -> DataFrame:
     """ """
-
     print("\nMerging all histories into one DataFrame...")
+
     return \
         pd.concat(histories, axis=0, ignore_index=True). \
         sort_values(by="timestamp", ascending=True, ignore_index=True)
 
 
-def _create_complete_history(output_files: str|Path) -> DataFrame:
+def _create_complete_history(output_files: str | Path) -> DataFrame:
     """ """
 
-    histories = [open_parquet(file) for file in output_files]
+    histories = [load_history(file, directory="parquet") for file in output_files]
     return merge_history(histories)
 
 
@@ -49,24 +76,13 @@ def _convert_to_list(x):
     return x if isinstance(x, list) else [x]
 
 
-def preprocess_directly(
-    file: str|Path,
-    cex: str,
-    config: Dict[str, Any]
-    ) -> None:
-
-    output_file = convert_extension(file, "parquet")
-    return \
-        open_csv(file, config["csv_import"]). \
-        pipe(preprocess_raw_df, cex, config). \
-        pipe(save_as_parquet, output_file, new_file=False) # change override behaviour
 
 
 # Main function
 
 def preprocess_histories(
-    csv_file: str|Path|List[str|Path],
-    cex: Literal["kucoin", "bitpanda"]|List[Literal["kucoin", "bitpanda"]],
+    csv_file: str | Path | list[str|Path],
+    cex: Literal["kucoin", "bitpanda"] | list[Literal["kucoin", "bitpanda"]],
     ) -> None:
     """ """
 
@@ -81,9 +97,8 @@ def preprocess_histories(
 
     for file, cex in zip(csv_files, cexs):
 
-        config = CONFIG[cex]
 
-        preprocess_directly(file, cex, config)
+        preprocess_directly(file, cex)
         print(f"-> Finished Preprocess of {file}" )
 
         output_files.append(convert_extension(file, "parquet"))
@@ -96,6 +111,6 @@ def preprocess_histories(
 
         return \
             _create_complete_history(output_files). \
-            pipe(save_as_parquet, output_file_complete, new_file=False)
+            pipe(save_history, output_file_complete, new_file=False)
 
     return None
