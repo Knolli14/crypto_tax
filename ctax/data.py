@@ -4,7 +4,7 @@ from pandas.errors import ParserError
 from pathlib import Path
 
 from ctax.paths import DATA_DIR, CONFIG_PATH, create_file_path
-from ctax.config import load_config
+from ctax.config.config import load_config
 
 
 config =load_config(CONFIG_PATH)
@@ -82,7 +82,14 @@ def save_history(
     directory: str = "parquet",
     new_file: bool = False, #TODO: implement
 ) -> None:
-    """ """
+    """
+    Saves the dataframe to a parquet file in the specified directory.
+
+    :param df: dataframe containing tx history to save
+    :param file_name: name of the file to save
+    :param directory: subdirectory of datafolder
+    :param new_file: if False the file will be overwritten
+    """
     print(f"\nSaving {file_name}...")
 
     file_path = DATA_DIR / directory / file_name
