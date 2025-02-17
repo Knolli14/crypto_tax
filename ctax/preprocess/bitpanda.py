@@ -2,27 +2,60 @@ import numpy as np
 
 from pandas import DataFrame, Series, merge_asof, to_datetime
 
-from typing import Any
-
 from ctax.utils import convert_to_datetime
 from ctax.accounting import finance as fin
+from ctax.config import load_config
+from ctax.paths import CONFIG_PATH
+
+config = load_config(CONFIG_PATH)
+
+base_fiat = config["base_fiat"]
+quantity_columns = config["bitpanda"]["quantity_columns"]
+rename_dict = config["bitpanda"]["rename_dict"]
+
+print(base_fiat, quantity_columns, rename_dict)
+
+#config = get_config("bitpanda")
+#rename_labels = config["rename_dict"]
+#quantity_columns = config["quantity_columns"]
+
+# main function
+def preprocess_bitpanda(
+    df: DataFrame,
+    base_fiat: str = "EUR",
+    ) -> DataFrame:
+    """ """
+    print("\nPreprocessing Bitpanda data...")
+
+
+    return df. \
+        pipe(clean_quantity_columns, columns=quantity_columns). \
+        rename(columns=rename_dict). \
+        assign(timestamp=convert_to_datetime). \
+        pipe(convert_forex_columns, base_fiat)
+
+
+# helper functions
 
 def clean_quantity_columns(
     df: DataFrame,
     columns: list[str]
     ) -> DataFrame:
     """ """
+    print("\nCleaning quantity columns...")
 
-    return df.apply(
-        lambda col: col.fillna(0)
-        if col.name in columns else col
-        )
+    for col in columns:
+        df[col] = df[col].fillna(0)
+
+    return df
 
 
 def convert_forex_columns(
     history: DataFrame,
     base_fiat: str = "EUR",
     ) -> DataFrame:
+    """ """
+    print(f"\nConverting fiat amounts to {base_fiat}...")
 
     forex_rates = fin.prepare_rates(history, base_fiat)
 
@@ -67,18 +100,3 @@ def _calculate_new_amount(
         np.sum(rates_list, axis=0) * df.amount_fiat,
         decimals=2
     )
-
-
-
-
-# main function
-def preprocess_bitpanda(
-    df: DataFrame,
-    config: dict[str, Any]):
-    """ """
-
-    return df. \
-        pipe(clean_quantity_columns, columns=config["quantity_columns"]). \
-        rename(columns=config["rename_dict"]). \
-        assign(timestamp=convert_to_datetime). \
-        pipe(convert_forex_columns, base_fiat="EUR")
