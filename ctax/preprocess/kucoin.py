@@ -5,7 +5,7 @@ from typing import Optional
 from ctax.accounting.finance import download_historic_prices
 from ctax.transaction import create_inner_txs
 from ctax.utils import convert_to_datetime
-from ctax.config import load_config
+from ctax.config.config import load_config
 from ctax.paths import CONFIG_PATH
 
 config = load_config(CONFIG_PATH)

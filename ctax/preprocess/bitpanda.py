@@ -4,7 +4,7 @@ from pandas import DataFrame, Series, merge_asof, to_datetime
 
 from ctax.utils import convert_to_datetime
 from ctax.accounting import finance as fin
-from ctax.config import load_config
+from ctax.config.config import load_config
 from ctax.paths import CONFIG_PATH
 
 config = load_config(CONFIG_PATH)
