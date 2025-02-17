@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DATA_DIR = ROOT / "data"
 
-CONFIG_PATH = ROOT / "ctax" / "config.yaml"
+CONFIG_PATH = ROOT / "ctax" / "config" / "config.yaml"
 
 
 def convert_extension(
