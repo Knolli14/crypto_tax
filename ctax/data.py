@@ -7,7 +7,7 @@ from ctax.paths import DATA_DIR, CONFIG_PATH, create_file_path
 from ctax.config.config import load_config
 
 
-config =load_config(CONFIG_PATH)
+config = load_config(CONFIG_PATH)
 
 
 def load_history(
@@ -74,13 +74,12 @@ def load_history(
         raise ValueError("File needs to be either csv or parquet")
 
 
-#TODO: create dirs if not existing
 def save_history(
     df: DataFrame,
     file_name: str | Path,
     *,
     directory: str = "parquet",
-    new_file: bool = False, #TODO: implement
+    new_file: bool = False,
 ) -> None:
     """
     Saves the dataframe to a parquet file in the specified directory.
@@ -92,8 +91,16 @@ def save_history(
     """
     print(f"\nSaving {file_name}...")
 
-    file_path = DATA_DIR / directory / file_name
-    df.to_parquet(file_path, index=False)
+    dir_path = DATA_DIR / directory
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    file_path = \
+        create_file_path(file_name, directory) if new_file else \
+        dir_path / file_name
+    try:
+        df.to_parquet(file_path , index=False)
+    except Exception as e:
+        print("Something went wrong while saving", e)
 
     print(f"...saved to {file_path}")
     return None
