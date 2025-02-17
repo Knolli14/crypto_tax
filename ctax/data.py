@@ -1,78 +1,92 @@
-import pandas as pd
+from pandas import DataFrame, read_csv, read_parquet, to_datetime
 from pandas.errors import ParserError
 
 from pathlib import Path
-from typing import Dict, List, Any
 
-from ctax.paths import DATA_DIR, create_file_path
+from ctax.paths import DATA_DIR, CONFIG_PATH, create_file_path
+from ctax.config import load_config
 
 
+config =load_config(CONFIG_PATH)
 
-def open_csv(
-    file_name: str|Path,
-    config: Dict[str, Any] = None,
-    ) -> pd.DataFrame:
+
+def load_history(
+    file_name: str | Path,
+    *,
+    directory: str = "",
+    raw: bool = False,
+    cex: str = None,
+    filters: list[tuple] | list[list[tuple]] = None
+) -> DataFrame:
     """
+    Can load either csv or parquet files into a dataframe. It expects
+    that the data is exported from the exchanges.
 
+    :param file_name: name of the file to load
+    :param directory: subdirectory of datafolder
+    :param raw: set True if loading the raw csv exported from the exchange
+    :param cex: if raw set to true you need to specify the exchange
+    :param filters: filters to apply when loading parquet files
+    :raises ValueError: if raw is True and cex is not specified
+    :raises ValueError: if the file is not csv or parquet
+    :raises FileNotFoundError: if the file is not found
+    :raises ParserError: if the csv file cannot be parsed. Probably due to wrong header
     """
+    print(f"\nLoading {file_name}...")
 
-    file_path = DATA_DIR / "csv" / file_name
+    # Checking if cex is specified for a raw import and then loading
+    # cex specific config
+    if raw:
+        if not cex:
+            raise ValueError("You need to specify the exchange when loading raw data")
 
-    try:
-        print(f"\nOpening {file_path}")
-        return pd.read_csv(file_path, **config or {})
-
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-        return None
-
-    except ParserError:
-        print(f"Error parsing file. Probably you need to adjust the header.")
-        return None
+        load_kwargs = config[cex]["csv_import"]
 
 
-def save_as_parquet(
-    df: pd.DataFrame,
-    output_file: str|Path,
-    new_file: bool = True,
-    engine: str = "pyarrow"
-    ) -> None:
-    """
+    # Path handling
+    file_path = DATA_DIR / directory / file_name
 
-    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"No file found at {file_path}")
 
-    file_path = \
-        create_file_path(output_file, "parquet") if new_file else \
-        DATA_DIR / "parquet" / output_file
+    # Routing to correct format
+    if file_path.suffix == ".csv":
+        try:
+            return  read_csv(file_path, **load_kwargs)
 
-    df.to_parquet(file_path, index=False)
+        except ParserError:
+            print(f"Error parsing file. Probably you need to adjust the header.")
+            return DataFrame()
 
-    print(f"...saved to {file_path}")
-    return None
+    elif file_path.suffix == ".parquet":
 
-
-def open_parquet(
-    file_name: str|Path,
-    filters: List[tuple]|List[List[tuple]]=None,
-    ) -> pd.DataFrame:
-    """
-
-    """
-
-    file_path = DATA_DIR / "parquet" / file_name
-
-    try:
         return \
-            pd.read_parquet(
+            read_parquet(
                 file_path,
                 filters=filters,
                 engine="pyarrow"
             ). \
             assign(timestamp = lambda df: \
-                pd.to_datetime(df["timestamp"]).\
+                to_datetime(df["timestamp"]).\
                 dt.tz_localize(None)
             )
+    else:
+        raise ValueError("File needs to be either csv or parquet")
 
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-        return None
+
+#TODO: create dirs if not existing
+def save_history(
+    df: DataFrame,
+    file_name: str | Path,
+    *,
+    directory: str = "parquet",
+    new_file: bool = False, #TODO: implement
+) -> None:
+    """ """
+    print(f"\nSaving {file_name}...")
+
+    file_path = DATA_DIR / directory / file_name
+    df.to_parquet(file_path, index=False)
+
+    print(f"...saved to {file_path}")
+    return None
