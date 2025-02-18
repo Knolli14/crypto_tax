@@ -55,13 +55,16 @@ def create_config(file_path: str | Path) -> None:
 
     return None
 
-def load_config(file_path: str) -> dict:
+def load_config() -> dict:
     """ """
-
-    with open(file_path, "r") as file:
+    with open(CONFIG_PATH, "r") as file:
         config = yaml.safe_load(file)
 
     return config
+
+
+def get_supported_cex(config: dict) -> list[str]:
+    return [key for key in config.keys() if key != 'base_fiat']
 
 
 if __name__ == "__main__":
