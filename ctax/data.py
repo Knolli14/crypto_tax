@@ -1,13 +1,15 @@
-from pandas import DataFrame, read_csv, read_parquet, to_datetime
+from pandas import DataFrame, read_csv, read_parquet
 from pandas.errors import ParserError
 
 from pathlib import Path
 
-from ctax.paths import DATA_DIR, CONFIG_PATH, create_file_path
 from ctax.config.config import load_config
+config = load_config()
 
+from ctax.paths import DATA_DIR, create_file_path
 
-config = load_config(CONFIG_PATH)
+from ctax.preprocess.load import process_loaded_history
+
 
 
 def load_history(
@@ -66,19 +68,18 @@ def load_history(
                 filters=filters,
                 engine="pyarrow"
             ). \
-            assign(timestamp = lambda df: \
-                to_datetime(df["timestamp"]).\
-                dt.tz_localize(None)
-            )
+            pipe(process_loaded_history)
+
     else:
         raise ValueError("File needs to be either csv or parquet")
+
 
 
 def save_history(
     df: DataFrame,
     file_name: str | Path,
     *,
-    directory: str = "parquet",
+    directory: str = "",
     new_file: bool = False,
 ) -> None:
     """
