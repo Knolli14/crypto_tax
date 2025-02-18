@@ -6,10 +6,8 @@ from ctax.accounting.finance import download_historic_prices
 from ctax.transaction import create_inner_txs
 from ctax.utils import convert_to_datetime
 from ctax.config.config import load_config
-from ctax.paths import CONFIG_PATH
 
-config = load_config(CONFIG_PATH)
-
+config = load_config()
 rename_dict = config["kucoin"]["rename_dict"]
 
 
