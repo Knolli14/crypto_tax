@@ -63,7 +63,8 @@ def load_config() -> dict:
     return config
 
 
-def get_supported_cex(config: dict) -> list[str]:
+def supported_cex() -> list[str]:
+    config = load_config()
     return [key for key in config.keys() if key != 'base_fiat']
 
 
