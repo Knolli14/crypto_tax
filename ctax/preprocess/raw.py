@@ -1,4 +1,4 @@
-from pandas import DataFrame
+from pandas import DataFrame, to_datetime
 
 from typing import Literal
 
@@ -18,10 +18,28 @@ def preprocess_raw_history(
     ) -> DataFrame:
     """ """
 
-    processed_df = preprocessing_funcs[cex](df)
-
-    #TODO: look back into it
-    # Im converting it here since i got an incompatible timeformat error during merge with conversion rates
-    processed_df["timestamp"] = processed_df["timestamp"].dt.tz_localize(None)
+    processed_df = \
+        preprocessing_funcs[cex](df). \
+        pipe(post_process)
 
     return processed_df
+
+
+def post_process(df: DataFrame) -> DataFrame:
+    """ """
+    return df. \
+        assign(timestamp = _to_datetime). \
+        pipe(_to_categorical)
+
+def _to_categorical(df: DataFrame) -> DataFrame:
+    """
+    Helper function that converts object columns to categorical after loading
+    history from file.
+    """
+    obj_cols = df.select_dtypes(include="object").columns
+    return df.astype({col: "category" for col in obj_cols})
+
+
+def _to_datetime(df: DataFrame) -> DataFrame:
+    """ """
+    return to_datetime(df["timestamp"]).dt.tz_localize(None)
