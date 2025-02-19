@@ -7,6 +7,7 @@ from ctax.transaction import create_inner_txs
 from ctax.utils import convert_to_datetime
 from ctax.config.config import load_config
 
+
 config = load_config()
 rename_dict = config["kucoin"]["rename_dict"]
 
@@ -16,7 +17,7 @@ def preprocess_kucoin(
     df: DataFrame,
     ):
     """ """
-    print(f"Start Preprocessing Kucoin data...")
+    print(f"-> Preprocessing Kucoin data...")
 
     first_date = df["Filled Time(UTC+02:00)"].min().split(" ")[0]
     rates = _get_usdt_eur_rates(begin=first_date)
@@ -33,16 +34,21 @@ def preprocess_kucoin(
 
 def _lower(df: DataFrame) :
     """ """
+    print("  -> Lowering transaction types...")
     return df["tx_type"].str.lower()
 
 def _split_symbol_column(df: DataFrame) -> DataFrame:
     """ """
+
+    print("  -> Splitting symbol column into new columns...")
     df[["asset_1", "asset_2"]] = df["Symbol"].str.split("-", expand=True,)
 
     return df.drop(columns=["Symbol"])
 
 def _create_txs_history(df: DataFrame, rates: Optional[DataFrame] = None) -> DataFrame:
     """ """
+
+    print("  -> Splitting Swaps...")
 
     final_txs = [] # list of dicts
 

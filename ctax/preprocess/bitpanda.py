@@ -19,7 +19,7 @@ def preprocess_bitpanda(
     base_fiat: str = base_fiat,
     ) -> DataFrame:
     """ """
-    print("\nPreprocessing Bitpanda data...")
+    print("-> Preprocessing Bitpanda data...")
 
 
     return df. \
@@ -36,7 +36,7 @@ def _clean_quantity_columns(
     columns: list[str]
     ) -> DataFrame:
     """ """
-    print("\nCleaning quantity columns...")
+    print("  -> Cleaning quantity columns...")
 
     for col in columns:
         df[col] = df[col].fillna(0)
@@ -50,7 +50,7 @@ def convert_forex_columns(
     base_fiat: str = "EUR",
     ) -> DataFrame:
     """ """
-    print(f"\nConverting fiat amounts to {base_fiat}...")
+    print(f"  -> Converting fiat amounts to {base_fiat}...")
 
     forex_rates = fin.prepare_rates(history, base_fiat)
 
