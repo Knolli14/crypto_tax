@@ -8,8 +8,6 @@ config = load_config()
 
 from ctax.paths import DATA_DIR, create_file_path
 
-from ctax.preprocess.load import process_loaded_history
-
 
 
 def load_history(
@@ -62,14 +60,11 @@ def load_history(
 
     elif file_path.suffix == ".parquet":
 
-        return \
-            read_parquet(
-                file_path,
-                filters=filters,
-                engine="pyarrow"
-            ). \
-            pipe(process_loaded_history)
-
+        return read_parquet(
+            file_path,
+            filters=filters,
+            engine="pyarrow"
+            )
     else:
         raise ValueError("File needs to be either csv or parquet")
 
