@@ -1,6 +1,5 @@
-base_fiat: EUR
-bitpanda:
-  csv_import:
+preprocess:
+  bitpanda:
     header: 6
     na_values:
     - '-'
@@ -11,18 +10,14 @@ bitpanda:
     - Asset
     - Amount Fiat
     - Fiat
-  quantity_columns:
-  - Amount Asset
-  - Amount Fiat
-  rename_dict:
-    Amount Asset: amount_asset
-    Amount Fiat: amount_fiat
-    Asset: asset
-    Fiat: fiat
-    Timestamp: timestamp
-    Transaction Type: tx_type
-kucoin:
-  csv_import:
+  final_columns:
+    amount_asset: amount_asset
+    amount_base: amount_base
+    asset: asset
+    base_asset: base_asset
+    timestamp: timestamp
+    tx_type: tx_type
+  kucoin:
     usecols:
     - Filled Time(UTC+02:00)
     - Side
@@ -30,9 +25,8 @@ kucoin:
     - Filled Amount
     - Filled Volume
     - Filled Volume (USDT)
-  rename_dict:
-    Filled Amount: amount_asset_1
-    Filled Time(UTC+02:00): timestamp
-    Filled Volume: amount_asset_2
-    Filled Volume (USDT): amount_usdt
-    Side: tx_type
+save_config:
+  file_extension: .parquet
+  file_name: history
+  overwrite: false
+  save_format: parquet

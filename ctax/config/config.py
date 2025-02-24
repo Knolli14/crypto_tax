@@ -1,72 +1,107 @@
 import yaml
 from pathlib import Path
-from ctax.paths import CONFIG_PATH
+from ctax.config.paths import CONFIG_FILE
 
-def create_config(file_path: str | Path) -> None:
-    """ """
 
-    config = {
-        "base_fiat": "EUR",
-        "bitpanda": {
-            "csv_import": {
-                "usecols": [
-                    "Timestamp",
-                    "Transaction Type",
-                    "Amount Asset",
-                    "Asset",
-                    "Amount Fiat",
-                    "Fiat",
-                ],
-                "header": 6,
-                "na_values": ["-"],
+class Config:
+    config_dir = Path(__file__).resolve().parent
+    file_path = config_dir / CONFIG_FILE
+
+    # Making it a singleton Class to have only one shared Instance over all
+    # modules
+    _isinstance = None
+
+    # TODO: dig deeper into topic
+    def __new__(cls, *args, **kwargs):
+        if cls._isinstance is None:
+            cls._isinstance = super(Config, cls).__new__(cls)
+        return cls._isinstance
+
+    def __init__(self, *, config=None):
+        if not hasattr(self, "config"):
+            if config is None:
+                raise ValueError("config_name must be provided")
+            self.config = config
+
+    # Dunder methods
+    # TODO: improve and implement a get sections etc
+    def __getitem__(self, key):
+        try:
+            return self.config[key]
+        except KeyError:
+            print("Not a valid key -> Returning None")
+            return None
+
+    def __repr__(self):
+        return str(self.config)
+
+    # class methods
+
+    @classmethod
+    def load(cls):
+
+        if not cls.file_path.exists():
+            raise FileNotFoundError(
+                f"No config file found at {cls.file_path}."
+                "Use Config.create_config() to create one"
+            )
+
+        with open(cls.file_path, "r") as file:
+            config = yaml.safe_load(file)
+            print("Loaded config")
+            return cls(config=config)
+
+    @classmethod
+    def create_config(cls) -> None:
+        """ """
+        config = {
+            # Save Settings
+            "save_config": {
+                "file_name": "history",
+                "save_format": "parquet",
+                "file_extension": ".parquet",
+                "overwrite": False,
             },
-            "quantity_columns": ["Amount Asset", "Amount Fiat"],
-            "rename_dict": {
-                "Timestamp": "timestamp",
-                "Transaction Type": "tx_type",
-                "Amount Asset": "amount_asset",
-                "Asset": "asset",
-                "Amount Fiat": "amount_fiat",
-                "Fiat": "fiat",
-            },
-        },
-        "kucoin": {
-            "csv_import": {
-                "usecols": [
-                    "Filled Time(UTC+02:00)",
-                    "Side",
-                    "Symbol",
-                    "Filled Amount", #amount of asset_1
-                    "Filled Volume", #amount of asset_2
-                    "Filled Volume (USDT)", # fiat value
-                ],
-            },
-            "rename_dict": {
-                "Filled Time(UTC+02:00)": "timestamp",
-                "Side": "tx_type",
-                "Filled Amount": "amount_asset_1",
-                "Filled Volume": "amount_asset_2",
-                "Filled Volume (USDT)": "amount_usdt",
-            },
+            # CEX specific settings for import and preprocess
+            "preprocess": {
+                "final_columns": {
+                    "timestamp": "timestamp",
+                    "tx_type": "tx_type",
+                    "asset": "asset",
+                    "amount_asset": "amount_asset",
+                    "base_asset": "base_asset",
+                    "amount_base": "amount_base",
+                },
+                "bitpanda": {
+                    "usecols": [
+                        "Timestamp",
+                        "Transaction Type",
+                        "Amount Asset",
+                        "Asset",
+                        "Amount Fiat",
+                        "Fiat",
+                    ],
+                    "header": 6,
+                    "na_values": ["-"],
+                },
+                "kucoin": {
+                    "usecols": [
+                        "Filled Time(UTC+02:00)",
+                        "Side",
+                        "Symbol",
+                        "Filled Amount",  # amount of asset_1
+                        "Filled Volume",  # amount of asset_2
+                        "Filled Volume (USDT)",  # fiat value
+                    ],
+                }
+            }
         }
-    }
-    with open(file_path, "w") as file:
-        yaml.dump(config, file)
+        with open(cls.file_path, "w") as file:
+            yaml.dump(config, file)
 
-    return None
-
-def load_config() -> dict:
-    """ """
-    with open(CONFIG_PATH, "r") as file:
-        config = yaml.safe_load(file)
-
-    return config
-
-
-def supported_cex() -> list[str]:
-    config = load_config()
-    return [key for key in config.keys() if key != 'base_fiat']
+        print("Config file created")
+        return None
 
 
 if __name__ == "__main__":
-    create_config(CONFIG_PATH)
+    Config.create_config()
