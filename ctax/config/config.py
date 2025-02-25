@@ -48,21 +48,20 @@ class Config:
 
         with open(cls.file_path, "r") as file:
             config = yaml.safe_load(file)
-            print("Loaded config")
             return cls(config=config)
+
 
     @classmethod
     def create_config(cls) -> None:
         """ """
         config = {
-            # Save Settings
+            ## Save Settings
             "save_config": {
                 "file_name": "history",
-                "save_format": "parquet",
                 "file_extension": ".parquet",
                 "overwrite": False,
             },
-            # CEX specific settings for import and preprocess
+            ## CEX specific settings for import and preprocess
             "preprocess": {
                 "final_columns": {
                     "timestamp": "timestamp",
@@ -72,6 +71,7 @@ class Config:
                     "base_asset": "base_asset",
                     "amount_base": "amount_base",
                 },
+                # --- Bitpanda ---
                 "bitpanda": {
                     "usecols": [
                         "Timestamp",
@@ -84,6 +84,7 @@ class Config:
                     "header": 6,
                     "na_values": ["-"],
                 },
+                # --- Kucoin ---
                 "kucoin": {
                     "usecols": [
                         "Filled Time(UTC+02:00)",
