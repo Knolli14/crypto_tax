@@ -44,23 +44,9 @@ class KucoinProcessor(BaseProcessor):
             "Stable": cls.final_column_labels["base_asset"],
         }
 
-
-    @staticmethod
-    def _swap_stable_split(
-            history: pd.DataFrame,
-            is_swap: pd.Series
-        ) -> tuple[pd.DataFrame]:
-        """If there are any transactions that are swaps, this method separates
-        them from the stable transactions. It returns two seperate DataFrames."""
-        print("  -> Splitting swaps and stable transactions")
-
-        # Token Swaps
-        df_swaps = history[is_swap].copy()
-
-        # Stable transactions
-        df_stable = history[~is_swap].copy()
-
-        return (df_swaps, df_stable)
+    #@property
+    #def load_keywords(cls) -> dict:
+    #    return cls.config["preprocess"]["kucoin"]
 
 
     @classmethod
@@ -79,6 +65,24 @@ class KucoinProcessor(BaseProcessor):
         stable_df["Symbol"] = [*symbols]
 
         return stable_df
+
+
+    @staticmethod
+    def _swap_stable_split(
+            history: pd.DataFrame,
+            is_swap: pd.Series
+        ) -> tuple[pd.DataFrame]:
+        """If there are any transactions that are swaps, this method separates
+        them from the stable transactions. It returns two seperate DataFrames."""
+        print("  -> Splitting swaps and stable transactions")
+
+        # Token Swaps
+        df_swaps = history[is_swap].copy()
+
+        # Stable transactions
+        df_stable = history[~is_swap].copy()
+
+        return (df_swaps, df_stable)
 
 
     @staticmethod
@@ -141,3 +145,9 @@ class KucoinProcessor(BaseProcessor):
     def _split(col):
         """"""
         return col.str.split("-")
+
+
+def process_kucoin(df: pd.DataFrame) -> pd.DataFrame:
+    """ """
+    return KucoinProcessor.process(df)
+# Compare this snippet from ctax/preprocess/cex/baseprocessor.py:

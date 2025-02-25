@@ -31,6 +31,11 @@ class BitpandaProcessor(BaseProcessor):
             "Fiat": cls.final_column_labels["base_asset"],
         }
 
+    #@property
+    #def load_keywords(cls) -> dict:
+    #    return cls.config["preprocess"]["bitpanda"]
+
+
     @staticmethod
     def _clean_quantity_columns(
         df: pd.DataFrame,

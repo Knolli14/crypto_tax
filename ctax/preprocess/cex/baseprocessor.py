@@ -6,7 +6,9 @@ from ctax.utils import to_datetime
 
 class BaseProcessor(ABC):
     """"""
-    final_column_labels = Config.load()["preprocess"]["final_columns"]
+
+    config = Config.load()
+    final_column_labels = config["preprocess"]["final_columns"]
 
     date_column_label = final_column_labels["timestamp"]
 
@@ -34,6 +36,13 @@ class BaseProcessor(ABC):
         """Dictionary containing the mapping of the old column labels to the
         final column labels."""
         pass
+
+    #@property
+    #@abstractmethod
+    #def load_keywords(cls) -> dict:
+    #    """Dictionary containing the keywords that are used when loading the
+    #    raw transaction history with pd.read_csv."""
+    #    pass
 
 
     @classmethod
