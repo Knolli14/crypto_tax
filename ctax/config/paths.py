@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Folder names
 DATA_DIR = "data"
+RAW_DIR = "data/raw"
 
 # File names
 CONFIG_FILE = "config.yaml"
