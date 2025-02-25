@@ -1,199 +1,93 @@
 from pathlib import Path
-from pandas import DataFrame
-
-from ctax.config.config import supported_cex
-
-from ctax.preprocess.raw import preprocess_raw_history
-from ctax.preprocess.merge import merge_history
-
-from ctax.data import load_history, save_history
-from ctax.paths import DATA_DIR
+import pandas as pd
+from ctax.preprocess.cex import bitpanda as bp
+from ctax.preprocess.cex import kucoin as kc
+from ctax.dataio.loading import load_history
+from ctax.dataio.saving import save_history
 
 
-class HistoryPreprocessor:
-    supported_cex = supported_cex()
+class Preprocessor:
+    """ """
 
-    def __init__(self):
-        self.cex = None
-        self._set_save_options()
+    cex_workers = {"kucoin": kc.KucoinProcessor,
+                   "bitpanda": bp.BitpandaProcessor}
 
 
-# setters
-    def set_cex(self, cex: str) -> 'HistoryPreprocessor':
-
-        if cex not in self.supported_cex:
-            raise ValueError(f"{cex} is not supported. Choose from {self.supported_cex}")
+    def __init__(self, cex: str):
+        if cex not in self.cex_workers:
+            raise ValueError(f"{cex} is not supported"
+                             f"Choose from {self.cex_workers.keys()}")
         self.cex = cex
 
-        return self
+        self.cex_worker = self.cex_workers[cex]
+        self.histories = {"raw": None, "processed": None}
+        self.source = None
 
 
-    def set_save_options(
-        self,
-        save: bool = True,
-        *,
-        name: str = None,
-        directory: str = None,
-        save_format: str = None,
-        new_file: bool = None,
-        ) -> 'HistoryPreprocessor':
-        """
-
-        """
-
-        # If we just wanna change one parameter we need to pass the rest
-        # as the actual values to _set_save_options so they stay as they are
-        name = name or self.name
-        directory = directory or self.directory
-        save_format = save_format or self.save_format
-        new_file = new_file or self.new_file
-
-        self._set_save_options(
-            save, name=name, directory=directory, save_format=save_format,
-            new_file=new_file
-        )
-        return self
-
-
-    def _set_save_options(
-        self,
-        save: bool = True,
-        *,
-        name: str = None,
-        directory: str = "processed",
-        save_format: str = "parquet", # right now only parquet is supported
-        new_file: bool = False,
-        ) -> None:
-        """
-        Method for changing saving behaviour during preprocessing.
-
-        :param save: set to True if you want to save the processed data
-        :param name: name of the file to save, needs to be specified if save is True
-        :param directory: subdirectory of datafolder where to save the file
-        :param save_format: format to save the file in, right now only parquet is supported
-        :param new_file: if False it will overwrite existing files with the same name
-        :raises TypeError: if parameters are not of the correct type
-        :raises ValueError: if save_format is not supported
-        """
-
-        if not isinstance(save, bool):
-            raise TypeError("save must be a boolean")
-        self.save = save
-
-        if not isinstance(directory, str):
-            raise TypeError("directory must be a string")
-        self.directory = directory
-
-        if save_format not in ["parquet"]: # add other and move to config
-            raise ValueError("save_format must be 'parquet' ")
-        self.save_format = save_format
-
-        if not isinstance(new_file, bool):
-            raise TypeError("new_file must be a boolean")
-        self.new_file = new_file
-
-        if not isinstance(name, str) and name is not None:
-            raise TypeError("file_name must be a string or Path")
-        self.name = name
-
-
-        if save and self.name is None:
-            self.name = f"{self.cex}_processed" if self.cex else None
-
-            if self.cex:
-                print(f"name not specified, will be saved as {self.name}.{save_format}")
-
-        return None
-
-
-    # methods
-    def preprocess(
-        self,
-        data: DataFrame | Path | str,
-        ) -> DataFrame:
-        """
-        :param data: DataFrame containing raw history data or Path to csv file
-        """
-
-        if self.cex is None:
-            raise ValueError(
-                """
-                You need to specify the exchange for preprocessing first.
-                \nUse set_cex() method to do so.
-                """
-            )
-
-        if not isinstance(data, DataFrame):
-            data = load_history(data, raw=True, cex=self.cex, directory="csv")
-
-        df_processed = preprocess_raw_history(data, self.cex)
-
-        if self.save:
-            self._save(df_processed, f"{self.name}.{self.save_format}")
-
-        return df_processed
-
-
-    def preprocess_directory(
-        self,
-        directory: str | Path,
-        cexs: list[str],
-        *,
-        merge: bool = True,
-    ) -> None:
-
-        # check for possible errors
-        if not isinstance(cexs, list):
-            cexs = [cexs]
-
-        dir_path = DATA_DIR / directory
-        if not dir_path.is_dir():
-            raise ValueError(f"{dir_path} is not a directory")
-
-        files = list(dir_path.glob("*.csv"))
-        if len(cexs) != len(files):
-            raise ValueError("Number of cexs and files do not match")
-
-
-        # preprocessing
-        processed_data = []
-        for file, cex in zip(files, cexs):
-            df = self.set_cex(cex).preprocess(file)
-            processed_data.append(df)
-
-
-        # merging process
-        if merge:
-            merged_data = self.merge(processed_data)
-
-        return {
-            "processed_data": processed_data,
-            "merged_data": merged_data
-        }
-
-
-    def merge(self, histories: list[DataFrame]) -> DataFrame:
+    def load_raw_history(self, file_name: str | Path) -> "Preprocessor":
         """ """
 
-        merged_data = merge_history(histories)
+        raw_history = load_history(file_name, directory="raw", cex=self.cex,
+                                   raw=True)
 
-        if self.save:
-            self._save(merged_data, f"merged.{self.save_format}")
+        self._add_raw_history(raw_history)
+        self.source = file_name
 
-        return merged_data#.drop_duplicates()
+        return self
 
 
-    # helper
-    def _save(self, df: DataFrame, file_name: str | Path) -> None:
+    def save_processed_history(self, file_name: str | Path = None) ->  None:
+        """ """
+        output_file = (file_name if file_name else
+                     Path(self.source).stem + ".parquet")
 
-        save_history(
-            df=df,
-            file_name=file_name,
-            directory=self.directory,
-            new_file=self.new_file
-        )
+        save_history(self.histories["processed"],
+                     output_file,
+                     directory="processed")
+
         return None
 
-    # dunders
-    def __repr__(self):
-        return f"HistoryPreprocessor(cex='{self.cex}')"
+
+    def _add_raw_history(self, history: pd.DataFrame):
+        self.histories["raw"] = history
+
+
+    def _add_processed_history(self, history: pd.DataFrame):
+        self.histories["processed"] = history
+
+
+    def preprocess(self) -> "Preprocessor":
+        """ """
+
+        processed_history = self.cex_worker.process(self.histories["raw"])
+        self._add_processed_history(processed_history)
+
+        return self
+
+
+    @classmethod
+    def preprocess_file(
+        cls,
+        file_name: str | Path,
+        cex: str,
+        *,
+        output_file: str = None
+    ) -> None:
+        """ """
+        return (cls(cex)
+                .load_raw_history(file_name)
+                .preprocess()
+                .save_processed_history(output_file))
+
+
+
+def preprocess_bitpanda_file(file_name: str | Path) -> None:
+    Preprocessor.preprocess_file(file_name, "bitpanda")
+
+def preprocess_kucoin_file(file_name: str | Path) -> None:
+    Preprocessor.preprocess_file(file_name, "kucoin")
+
+
+if __name__ == "__main__":
+
+    pass

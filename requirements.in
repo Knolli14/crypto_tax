@@ -1,3 +1,7 @@
+#dev
+pip-tools
+jupyter
+
+# app
 pandas
 pyarrow
-yfinance
