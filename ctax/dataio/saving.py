@@ -12,7 +12,7 @@ overwrite = save_options["overwrite"]
 
 def save_history(
     df: pd.DataFrame,
-    file_name: str | Path = f"{output_file}.parquet",
+    file_name: str | Path = None,
     *,
     directory: str = "",
 ) -> None:
@@ -26,6 +26,8 @@ def save_history(
     :param directory: subdirectory of datafolder
     :param new_file: if False the file will be overwritten
     """
+
+    file_name = file_name if file_name else output_file
     print(f"\nSaving {file_name}...")
 
     dir_path = paths.ROOT / paths.DATA_DIR / directory
@@ -33,23 +35,23 @@ def save_history(
 
     if overwrite:
         file_path = dir_path / file_name
+
     else:
         file_path = paths.create_unique_file_path(
-            file_name, directory=directory)
+            file_name=file_name,
+            directory=directory
+        )
 
     try:
         df.to_parquet(file_path, index=False)
+        print(f"...saved to {file_path}")
+
     except Exception as e:
         print("Something went wrong while saving", e)
 
-    print(f"...saved to {file_path}")
     return None
 
 
 if __name__ == "__main__":
-    from ctax.dataio.loading import load_history
 
-    history = load_history("bitpanda_all.csv")
-    save_history(history, "bitpanda_all.parquet", directory="test")
-
-    save_history(history, directory="test")
+    pass

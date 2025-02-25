@@ -17,7 +17,7 @@ def load_history(
     filters: list[tuple] | list[list[tuple]] = None
 ) -> pd.DataFrame:
     """Can load either csv or parquet files into a dataframe. It expects
-    that the data is exported from the exchanges.
+    that the data is exported from the exchanges when using raw option.
 
     :param file_name: name of the file to load
     :param directory: subdirectory of datafolder
@@ -31,15 +31,18 @@ def load_history(
     """
     print(f"\nLoading {file_name}...")
 
+
     # Checking if cex is specified for a raw import and then loading
     # cex specific config
-    if raw:
-        if not cex:
-            raise ValueError(
-                "You need to specify the exchange when loading raw data")
+    if raw and not cex:
+        raise ValueError("You need to specify the exchange"
+                         "when loading raw data")
+    elif raw and cex:
         load_kwargs = pre_config[cex]
+
     else:
         load_kwargs = {}
+
 
     # Path handling
     file_path = paths.ROOT / paths.DATA_DIR / directory / file_name
@@ -47,30 +50,43 @@ def load_history(
     if not file_path.exists():
         raise FileNotFoundError(f"No file found at {file_path}")
 
-    # Routing to correct format
-    # CSV
-    if file_path.suffix == ".csv":
-        try:
-            return pd.read_csv(file_path, **load_kwargs)
 
-        except ParserError:
-            print(f"Error parsing file. Check if 'cex' is correctly chosen.")
-            return pd.DataFrame()
+    # Routing to correct loader
+    match file_path.suffix:
 
-    # Parquet
-    elif file_path.suffix == ".parquet":
+        case ".csv":
+            history = _load_csv(file_path, **load_kwargs)
 
-        return pd.read_parquet(file_path,
-                               filters=filters,
-                               engine="pyarrow")
-    else:
-        raise ValueError("File needs to be either csv or parquet")
+        case ".parquet":
+            history = pd.read_parquet(file_path, filters=filters,
+                                      engine="pyarrow")
+        case _:
+            raise ValueError("File needs to be either csv or parquet")
+
+
+    print(f"...loaded {history.shape[0]} entries")
+    return history
+
+
+def _load_csv(file_path: str | Path, **load_kwargs: dict
+              ) -> pd.DataFrame:
+    """ Helper Method for loading data from csv files. Responsible for
+    Error handling.
+
+    :param **load_kwargs: dictionary with keyword arguments
+    for the pd.read_csv method
+    """
+
+    try:
+        history = pd.read_csv(file_path, **load_kwargs)
+
+    except ParserError:
+        print(f"Error parsing file. Check if 'cex' is correctly chosen.")
+        history = pd.DataFrame()
+
+    return history
 
 
 if __name__ == "__main__":
 
-    raw_history_bp = load_history("bitpanda_all.csv", raw=True, cex="bitpanda")
-    print(raw_history_bp.head())
-
-    raw_parquet = load_history("bitpanda_all.parquet", directory="test")
-    print(raw_parquet.head())
+    pass
