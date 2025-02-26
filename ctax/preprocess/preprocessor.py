@@ -1,20 +1,23 @@
 from pathlib import Path
 import pandas as pd
-from ctax.preprocess.cex import bitpanda as bp
-from ctax.preprocess.cex import kucoin as kc
+from typing import Generator
+from ctax.preprocess.cex.bitpanda import process_bitpanda
+from ctax.preprocess.cex.kucoin import process_kucoin
 from ctax.dataio.loading import load_history
 from ctax.dataio.saving import save_history
-from ctax.utils import list_arguments
+from ctax.utils import list_arguments, check_same_lengths
 
 
 class Preprocessor:
     """ """
 
-    _cex_catalogue = {"kucoin": kc.KucoinProcessor,
-                      "bitpanda": bp.BitpandaProcessor}
+    # --- Class Attributes ---
+    _cex_catalogue = {"kucoin": process_kucoin,
+                      "bitpanda": process_bitpanda}
 
     _cex_workers = {}
 
+    # ---  Initialization ---
     def __new__(cls, cex: str):
         """ """
         if cex not in cls._cex_catalogue:
@@ -31,11 +34,12 @@ class Preprocessor:
     def __init__(self, cex: str):
         if not hasattr(self, "_initialized"):
             self.cex = cex
-            self.cex_worker = self._cex_catalogue[cex]
+            self.cex_func = self._cex_catalogue[cex]
             self.raw = None
             self.processed = []
             self.source = None
             self._initialized = True
+
 
     # --- Instance Creation ---
     @classmethod
@@ -43,8 +47,6 @@ class Preprocessor:
         """ Intended method to create a Preprocessor instance."""
 
         pp = cls(cex)
-        print(Preprocessor.__dict__)
-        print(pp.__dict__)
         raw_history = load_history(file_name, directory="raw", cex=cex,
                                    raw=True)
 
@@ -62,19 +64,20 @@ class Preprocessor:
         return pp
 
 
-    # --- Methods ---
+    # --- Main Instance Methods ---
     def preprocess_history(self) -> "Preprocessor":
         """ """
         if self.raw is None:
             print("Please load raw history first")
             return self
 
-        processed_history = self.cex_worker.process(self.raw)
+        processed_history = self.cex_func(self.raw)
         self._add_processed(processed_history)
 
         return self
 
 
+    # --- Saving Method ---
     def save_processed_history(self, file_name: str | Path = None) ->  None:
         """ """
         output_file = (file_name if file_name else
@@ -87,6 +90,7 @@ class Preprocessor:
 
         return None
 
+
     # --- Setters ---
     def _set_raw_history(self, history: pd.DataFrame) -> "Preprocessor":
         """ Saves the raw history to the instance. """
@@ -96,51 +100,44 @@ class Preprocessor:
 
     def _add_processed(self, history: pd.DataFrame) -> None:
         """"""
-        print(self.processed)
         self.processed.append(history)
 
         return None
 
 
-    # --- Getters ---
-    @classmethod
-    def get_worker(cls, cex: str) -> "Preprocessor":
-        """ """
-        return cls._cex_workers[cex]
-
-
-    # --- Class Methods ---
+    # --- Main Class Method ---
     @classmethod
     def preprocess_files(
             cls, file_name: str | Path | list[str | Path],
             cex: str, *,
             output_file: str = None,
-            save: bool = True
+            merge: bool = True
         ) -> None:
         """ Preprocesses raw csv files and saves the processed history
-        to a parquet"""
+        to a parquet. Merges files on default."""
 
         files = list_arguments(file_name)
         cexs = list_arguments(cex)
 
-        if len(files) != len(cexs):
-            raise ValueError("Number of files and cexs must match")
+        check_same_lengths([files, cexs])
 
-        for file_name, cex in zip(files, cexs):
+        for file, cex in zip(files, cexs): (
+                cls.from_file(file, cex)
+                .preprocess_history()
+                .save_processed_history(output_file)
+        )
+        if merge and len(files) > 1:
 
-            pp = cls.from_file(file_name, cex).preprocess_history()
-            pp.save_processed_history(output_file) if save else None
+            histories = cls._fetch_histories("all")
+            merged_history = cls._merge_histories(histories)
+            save_history(merged_history, "merged.parquet", directory="processed")
 
         return None
 
 
+    # --- Helper Methods ---
     @classmethod
-    def merge_files(cls):
-        pass
-
-
-    @classmethod
-    def _fetch_histories(cls, cex: str = "all") -> list[pd.DataFrame]:
+    def _fetch_histories(cls, cex: str = "all") -> Generator:
         """ """
 
         if cex == "all":
@@ -152,29 +149,30 @@ class Preprocessor:
 
         return histories
 
+
     @classmethod
-    def _merge_histories(cls, histories: list[pd.DataFrame]) -> pd.DataFrame:
+    def _merge_histories(cls, histories: Generator) -> pd.DataFrame:
         """ """
+        print("\nMerging files...")
+
+        def _drop_dups(df: pd.DataFrame) -> pd.DataFrame:
+            subset = ["tx_id", "tx_type", "amount_asset", "amount_base"]
+            num_duplicated = df.duplicated(subset=subset).sum()
+
+            df = df.drop_duplicates(subset=subset)
+            print(f"-> Dropped {num_duplicated} duplicates")
+
+            return df
 
         merged_history =  (
             pd.concat(histories, ignore_index=True)
-            .drop_duplicates(subset=["tx_id", "amount_asset", "amount_base"])
+            .pipe(_drop_dups)
             .sort_values("timestamp")
             .reset_index(drop=True)
         )
+        print(f"-> New History has {len(merged_history)} entries")
 
         return merged_history
-
-# --- File Preprocessing Functions ---
-def preprocess_bitpanda_file(file_name: str | Path) -> None:
-    """ ready to use function to preprocess a bitpanda file
-    and save it back to a parquet file"""
-    Preprocessor.preprocess_file(file_name, "bitpanda")
-
-def preprocess_kucoin_file(file_name: str | Path) -> None:
-    """ ready to use function to preprocess a kucoin file
-    and save it back to a parquet file"""
-    Preprocessor.preprocess_file(file_name, "kucoin")
 
 
 if __name__ == "__main__":
