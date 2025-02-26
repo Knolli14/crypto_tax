@@ -14,6 +14,7 @@ class KucoinProcessor(BaseProcessor):
         if any(is_swap):
             swaps, stables = cls._swap_stable_split(history, is_swap)
             processed_swaps = cls._process_swaps(swaps)
+            print(f"  -> Splitted {len(swaps)} Swaps")
 
         else:
             stables = history.copy()
@@ -42,6 +43,7 @@ class KucoinProcessor(BaseProcessor):
             "Symbol": cls.final_column_labels["asset"],
             "Filled Volume (USDT)": cls.final_column_labels["amount_base"],
             "Stable": cls.final_column_labels["base_asset"],
+            "Order ID": cls.final_column_labels["tx_id"],
         }
 
     #@property

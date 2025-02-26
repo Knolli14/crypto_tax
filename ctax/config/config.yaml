@@ -10,12 +10,14 @@ preprocess:
     - Asset
     - Amount Fiat
     - Fiat
+    - Transaction ID
   final_columns:
     amount_asset: amount_asset
     amount_base: amount_base
     asset: asset
     base_asset: base_asset
     timestamp: timestamp
+    tx_id: tx_id
     tx_type: tx_type
   kucoin:
     usecols:
@@ -25,8 +27,8 @@ preprocess:
     - Filled Amount
     - Filled Volume
     - Filled Volume (USDT)
+    - Order ID
 save_config:
   file_extension: .parquet
   file_name: history
   overwrite: false
-  save_format: parquet
