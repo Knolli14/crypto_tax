@@ -9,27 +9,27 @@ from ctax.dataio.saving import save_history
 class Preprocessor:
     """ """
 
-    _cex_workers = {"kucoin": kc.KucoinProcessor,
-                   "bitpanda": bp.BitpandaProcessor}
+    _cex_catalogue = {"kucoin": kc.KucoinProcessor,
+                      "bitpanda": bp.BitpandaProcessor}
 
-    _instances = {}
+    _cex_workers = {}
 
     def __new__(cls, cex: str):
         """ """
-        if cex not in cls._cex_workers:
+        if cex not in cls._cex_catalogue:
             raise ValueError(f"{cex} is not supported"
-                             f"Choose from {cls._cex_workers.keys()}")
+                             f"Choose from {cls._cex_catalogue.keys()}")
 
-        if cex not in cls._instances:
+        if cex not in cls._cex_workers:
             instance =  super().__new__(cls)
-            cls._instances[cex] = instance
+            cls._cex_workers[cex] = instance
 
-        return cls._instances[cex]
+        return cls._cex_workers[cex]
 
 
     def __init__(self, cex: str):
         self.cex = cex
-        self.cex_worker = self._cex_workers[cex]
+        self.cex_worker = self._cex_catalogue[cex]
         self.raw = None
         self.processed = None
         self.source = None
@@ -121,6 +121,7 @@ class Preprocessor:
         return (cls.from_file(file_name, cex)
                 .preprocess_history()
                 .save_processed_history(output_file))
+
 
     @classmethod
     def _fetch_histories(cls, cex: str = "all") -> list[pd.DataFrame]:
