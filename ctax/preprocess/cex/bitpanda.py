@@ -29,6 +29,7 @@ class BitpandaProcessor(BaseProcessor):
             "Asset": cls.final_column_labels["asset"],
             "Amount Fiat": cls.final_column_labels["amount_base"],
             "Fiat": cls.final_column_labels["base_asset"],
+            "Transaction ID": cls.final_column_labels["tx_id"],
         }
 
     #@property

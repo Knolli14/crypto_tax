@@ -11,6 +11,7 @@ class BaseProcessor(ABC):
     final_column_labels = config["preprocess"]["final_columns"]
 
     date_column_label = final_column_labels["timestamp"]
+    id_column_label = final_column_labels["tx_id"]
 
     cat_column_labels = [
         final_column_labels["tx_type"],
@@ -85,6 +86,7 @@ class BaseProcessor(ABC):
             cls.final_column_labels["asset"],
             cls.final_column_labels["amount_base"],
             cls.final_column_labels["base_asset"],
+            cls.final_column_labels["tx_id"],
         ]
         return history[desired_order]
 

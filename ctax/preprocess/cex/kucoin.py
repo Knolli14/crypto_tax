@@ -42,6 +42,7 @@ class KucoinProcessor(BaseProcessor):
             "Symbol": cls.final_column_labels["asset"],
             "Filled Volume (USDT)": cls.final_column_labels["amount_base"],
             "Stable": cls.final_column_labels["base_asset"],
+            "Order ID": cls.final_column_labels["tx_id"],
         }
 
     #@property
