@@ -4,6 +4,7 @@ from ctax.preprocess.cex import bitpanda as bp
 from ctax.preprocess.cex import kucoin as kc
 from ctax.dataio.loading import load_history
 from ctax.dataio.saving import save_history
+from ctax.utils import list_arguments
 
 
 class Preprocessor:
@@ -23,19 +24,18 @@ class Preprocessor:
         if cex not in cls._cex_workers:
             instance =  super().__new__(cls)
             cls._cex_workers[cex] = instance
-            print(instance)
-            print(cls._cex_workers)
 
         return cls._cex_workers[cex]
 
 
     def __init__(self, cex: str):
-        self.cex = cex
-        self.cex_worker = self._cex_catalogue[cex]
-        self.raw = None
-        self.processed = None
-        self.source = None
-
+        if not hasattr(self, "_initialized"):
+            self.cex = cex
+            self.cex_worker = self._cex_catalogue[cex]
+            self.raw = None
+            self.processed = []
+            self.source = None
+            self._initialized = True
 
     # --- Instance Creation ---
     @classmethod
@@ -43,6 +43,8 @@ class Preprocessor:
         """ Intended method to create a Preprocessor instance."""
 
         pp = cls(cex)
+        print(Preprocessor.__dict__)
+        print(pp.__dict__)
         raw_history = load_history(file_name, directory="raw", cex=cex,
                                    raw=True)
 
@@ -94,12 +96,8 @@ class Preprocessor:
 
     def _add_processed(self, history: pd.DataFrame) -> None:
         """"""
-
-        if self.processed is None:
-            self.processed = [history]
-
-        else:
-            self.processed.append(history)
+        print(self.processed)
+        self.processed.append(history)
 
         return None
 
@@ -113,16 +111,32 @@ class Preprocessor:
 
     # --- Class Methods ---
     @classmethod
-    def preprocess_file(
-            cls, file_name: str | Path, cex: str, *,
-            output_file: str = None
+    def preprocess_files(
+            cls, file_name: str | Path | list[str | Path],
+            cex: str, *,
+            output_file: str = None,
+            save: bool = True
         ) -> None:
-        """ Preprocesses a raw csv file and saves the processed history
+        """ Preprocesses raw csv files and saves the processed history
         to a parquet"""
 
-        return (cls.from_file(file_name, cex)
-                .preprocess_history()
-                .save_processed_history(output_file))
+        files = list_arguments(file_name)
+        cexs = list_arguments(cex)
+
+        if len(files) != len(cexs):
+            raise ValueError("Number of files and cexs must match")
+
+        for file_name, cex in zip(files, cexs):
+
+            pp = cls.from_file(file_name, cex).preprocess_history()
+            pp.save_processed_history(output_file) if save else None
+
+        return None
+
+
+    @classmethod
+    def merge_files(cls):
+        pass
 
 
     @classmethod
@@ -146,6 +160,7 @@ class Preprocessor:
             pd.concat(histories, ignore_index=True)
             .drop_duplicates(subset=["tx_id", "amount_asset", "amount_base"])
             .sort_values("timestamp")
+            .reset_index(drop=True)
         )
 
         return merged_history
