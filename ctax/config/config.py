@@ -70,6 +70,7 @@ class Config:
                     "amount_asset": "amount_asset",
                     "base_asset": "base_asset",
                     "amount_base": "amount_base",
+                    "tx_id": "tx_id",
                 },
                 # --- Bitpanda ---
                 "bitpanda": {
@@ -80,6 +81,7 @@ class Config:
                         "Asset",
                         "Amount Fiat",
                         "Fiat",
+                        "Transaction ID",
                     ],
                     "header": 6,
                     "na_values": ["-"],
@@ -93,6 +95,7 @@ class Config:
                         "Filled Amount",  # amount of asset_1
                         "Filled Volume",  # amount of asset_2
                         "Filled Volume (USDT)",  # fiat value
+                        "Order ID",
                     ],
                 }
             }
