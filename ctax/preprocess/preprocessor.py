@@ -23,6 +23,8 @@ class Preprocessor:
         if cex not in cls._cex_workers:
             instance =  super().__new__(cls)
             cls._cex_workers[cex] = instance
+            print(instance)
+            print(cls._cex_workers)
 
         return cls._cex_workers[cex]
 
@@ -106,7 +108,7 @@ class Preprocessor:
     @classmethod
     def get_worker(cls, cex: str) -> "Preprocessor":
         """ """
-        return cls._instances[cex]
+        return cls._cex_workers[cex]
 
 
     # --- Class Methods ---
@@ -128,11 +130,11 @@ class Preprocessor:
         """ """
 
         if cex == "all":
-            workers = cls._instances.values()
+            workers = cls._cex_workers.values()
             histories = (h for worker in workers
                          for h in worker.processed)
         else:
-            histories = (h for h in cls._instances[cex].processed)
+            histories = (h for h in cls._cex_workers[cex].processed)
 
         return histories
 
