@@ -14,6 +14,7 @@ class KucoinProcessor(BaseProcessor):
         if any(is_swap):
             swaps, stables = cls._swap_stable_split(history, is_swap)
             processed_swaps = cls._process_swaps(swaps)
+            print(f"  -> Splitted {len(swaps)} Swaps")
 
         else:
             stables = history.copy()

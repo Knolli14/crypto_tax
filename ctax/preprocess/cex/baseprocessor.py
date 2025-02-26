@@ -71,7 +71,7 @@ class BaseProcessor(ABC):
             .pipe(cls._reorder_columns)
             .pipe(cls._convert_dypes)
         )
-        print("...done")
+        print("...done", f"-> History now has {len(history)} entries.", sep="\n")
         return history
 
     @classmethod
